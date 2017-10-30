@@ -18,11 +18,16 @@ export class AppComponent {
   @ViewChild('someVar') el: ElementRef;
   public itens: any[];
   public dcmFile: any;
+  public endPoint: string;
+  public elmt: any;
 
   @ViewChild('tool') myTool;
+  @ViewChild('dicomImage') myElement;
   @ViewChild('action') action;
-  constructor(private render: Renderer2, elementRef: ElementRef, private http: Http) {
+  constructor(private render: Renderer2, private elementRef: ElementRef, private http: Http ) {
+    this.endPoint = "YOUR_WADO/URI";
 
+    this.elmt = this.elementRef.nativeElement.querySelector('#dicomImage');
     this.listEfects = cornerstone.colors.getColormapsList();
     this.itens = [
       { "id": "wwwc", "name": "WW/WC" },
@@ -45,8 +50,10 @@ export class AppComponent {
       }
     };
     cornerstoneWADOImageLoader.webWorkerManager.initialize(config);
-
-    this.wadoService();
+  }
+  
+  ngAfterViewInit() {
+    this.sout();
   }
 
   public changeEfect(efect) {
@@ -75,82 +82,38 @@ export class AppComponent {
     cornerstoneTools.freehand.deactivate(element, 1);
   }
 
-  wadoService() {
-    this.http.get("YOUR_WADO_URI/FILE_BYTE_ARRAY")
-      .subscribe(
-      response => this.getPixelData(response),
-      err => console.log(err),
-      () => this.startRead()
-      )
+  public sout(){
+    console.log(this.elmt);
+    
+    let url = "wadouri:" + this.endPoint;
+    cornerstoneWADOImageLoader.wadouri.dataSetCacheManager.load(this.endPoint);
+    this.getExampleImage(url)
   }
 
-  getPixelData(base64PixelData) {
-    let pixelData = this.str2ab(base64PixelData._body);
-    this.dcmFile = pixelData;
-  }
-
-  str2ab(str) {
-    let buf = new ArrayBuffer(str.length * 2);
-    let bufView = new Uint16Array(buf);
-    let index = 0;
-    for (let i = 0, strLen = str.length; i < strLen; i += 2) {
-      let lower = str.charCodeAt(i);
-      let upper = str.charCodeAt(i + 1);
-      bufView[index] = lower + (upper << 8);
-      index++;
-    }
-    return bufView;
-  }
-
-  startRead() {
+  public getExampleImage(imageId) {
+    try {
     let self = this;
-    let getExampleImage = (imageId) => {
-      let width = 512;
-      let height = 512;
-
-      let getPixelData = () => {
-        return self.dcmFile;
-      }
-
-      console.log(self.dcmFile)
-      let image = {
-        imageId: imageId,
-        minPixelValue: -950,
-        maxPixelValue: 670,
-        slope: 1.0,
-        intercept: 0,
-        windowCenter: 127,
-        windowWidth: 556,
-        getPixelData: getPixelData,
-        rows: height,
-        columns: width,
-        height: height,
-        width: width
-      };
-
-      let deferred = $.Deferred();
-      deferred.resolve(image);
-      return deferred;
-    }
-
-    cornerstone.registerImageLoader('example', getExampleImage);
-    let imageId = 'example://2';
-    let element = document.getElementById('dicomImage');
+    const element = document.getElementById('dicomImage');
     cornerstone.enable(element);
-    cornerstone.loadImage(imageId).then((image) => {
-      cornerstone.displayImage(element, image);
+    cornerstone.loadAndCacheImage(imageId).then(function (image) {
+      var viewport = cornerstone.getDefaultViewportForImage(element, image);
+      cornerstone.displayImage(element, image, viewport);
+
       cornerstoneTools.touchInput.enable(element);
 
+      // Enable all tools we want to use with this element
       cornerstoneTools.zoomTouchPinch.activate(element);
+      //cornerstoneTools.rotateTouch.activate(element);
       cornerstoneTools.wwwcTouchDrag.activate(element);
       cornerstoneTools.panMultiTouch.activate(element);
 
       cornerstoneTools.mouseInput.enable(element);
       cornerstoneTools.mouseWheelInput.enable(element);
-      cornerstoneTools.wwwc.activate(element, 1);
-      cornerstoneTools.pan.activate(element, 2);
-      cornerstoneTools.zoom.activate(element, 4);
-      cornerstoneTools.zoomWheel.activate(element);
+      // Enable all tools we want to use with this element
+      cornerstoneTools.wwwc.activate(element, 1); // ww/wc is the default tool for left mouse button
+      cornerstoneTools.pan.activate(element, 2); // pan is the default tool for middle mouse button
+      cornerstoneTools.zoom.activate(element, 4); // zoom is the default tool for right mouse button
+      cornerstoneTools.zoomWheel.activate(element); // zoom is the default tool for middle mouse wheel
       cornerstoneTools.probe.enable(element);
       cornerstoneTools.length.enable(element);
       cornerstoneTools.ellipticalRoi.enable(element);
@@ -158,10 +121,10 @@ export class AppComponent {
       cornerstoneTools.angle.enable(element);
       cornerstoneTools.highlight.enable(element);
 
-      let disableAllTools = () => {
+      function disableAllTools() {
         cornerstoneTools.wwwc.disable(element);
-        cornerstoneTools.pan.activate(element, 2);
-        cornerstoneTools.zoom.activate(element, 4);
+        cornerstoneTools.pan.activate(element, 2); // 2 is middle mouse button
+        cornerstoneTools.zoom.activate(element, 4); // 4 is right mouse button
         cornerstoneTools.probe.deactivate(element, 1);
         cornerstoneTools.length.deactivate(element, 1);
         cornerstoneTools.ellipticalRoi.deactivate(element, 1);
@@ -181,13 +144,13 @@ export class AppComponent {
         return false;
       })
 
-      let onViewportUpdated = (e) => {
-        let viewport = cornerstone.getViewport(e.target)
+      function onViewportUpdated(e) {
+        var viewport = cornerstone.getViewport(e.target)
       };
 
       $(element).on("CornerstoneImageRendered", onViewportUpdated);
 
-      let config = {
+      var config = {
         minScale: 0.25,
         maxScale: 20.0,
         preventZoomOutsideImage: true
@@ -195,7 +158,16 @@ export class AppComponent {
 
       cornerstoneTools.zoom.setConfiguration(config);
 
-    });
+      $('#chkshadow').on('change', function () {
+        cornerstoneTools.length.setConfiguration({ shadow: this.checked });
+        cornerstoneTools.angle.setConfiguration({ shadow: this.checked });
+        cornerstone.updateImage(element);
+      });
+
+    })
+    } catch (err) {
+      console.log(err)
+    }
   }
 
 }
