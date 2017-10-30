@@ -19,7 +19,6 @@ export class AppComponent {
   public itens: any[];
   public dcmFile: any;
   public endPoint: string;
-  public elmt: any;
 
   @ViewChild('tool') myTool;
   @ViewChild('dicomImage') myElement;
@@ -27,7 +26,6 @@ export class AppComponent {
   constructor(private render: Renderer2, private elementRef: ElementRef, private http: Http ) {
     this.endPoint = "YOUR_WADO/URI";
 
-    this.elmt = this.elementRef.nativeElement.querySelector('#dicomImage');
     this.listEfects = cornerstone.colors.getColormapsList();
     this.itens = [
       { "id": "wwwc", "name": "WW/WC" },
@@ -83,8 +81,6 @@ export class AppComponent {
   }
 
   public sout(){
-    console.log(this.elmt);
-    
     let url = "wadouri:" + this.endPoint;
     cornerstoneWADOImageLoader.wadouri.dataSetCacheManager.load(this.endPoint);
     this.getExampleImage(url)
