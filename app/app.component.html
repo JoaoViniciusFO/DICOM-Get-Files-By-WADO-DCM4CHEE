@@ -16,36 +16,13 @@
    <select (change)="changeEfect($event.target.value)">
           <option *ngFor="let color of listEfects" [value]="color.id">{{color.name}}</option>
         </select> 
-  <input type="file" (change)="fileUpload($event)">
   <div class="col-xs-10">
     <div style="width:512px;height:512px;position:relative;display:inline-block;color:white;" >
       <div id="dicomImage" style="width:512px;height:512px;top:0px;left:0px; position:absolute;">
-      </div>
-      <div id="mrtopleft" style="position: absolute;top:3px; left:3px">
-        Patient Name
-      </div>
-      <div id="mrtopright" style="position: absolute;top:3px; right:3px">
-        Hospital
-      </div>
-      <div id="mrbottomright" style="position: absolute;bottom:3px; right:3px">
-        Zoom:
-      </div>
-      <div id="mrbottomleft" style="position: absolute;bottom:3px; left:3px">
-        WW/WC:
       </div>
     </div>
   </div>
   <div #action>
     <button id="edited-exame">Salvar</button>
   </div>
-  URL:
-  <input type="text" ([ngModel])="uri" (change)="sout($event)">
 </div>
-
- <div>
-  <ul>
-    <li *ngFor="let tag of tags">
-      {{tag.tag}} => {{tag.vr}}
-    </li>
-  </ul>
-</div> 
